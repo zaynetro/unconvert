@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Unconvert removes redundant type conversions from Go packages.
-package unconvert
+package main
 
 import (
 	"bytes"
@@ -162,12 +162,12 @@ func rub(buf []byte) []byte {
 }
 
 var (
-	flagAll        = flag.Bool("unconvert.all", false, "type check all GOOS and GOARCH combinations")
-	flagApply      = flag.Bool("unconvert.apply", false, "apply edits to source files")
-	flagCPUProfile = flag.String("unconvert.cpuprofile", "", "write CPU profile to file")
+	flagAll        = flag.Bool("all", false, "type check all GOOS and GOARCH combinations")
+	flagApply      = flag.Bool("apply", false, "apply edits to source files")
+	flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to file")
 	// TODO(mdempsky): Better description and maybe flag name.
-	flagSafe = flag.Bool("unconvert.safe", false, "be more conservative (experimental)")
-	flagV    = flag.Bool("unconvert.v", false, "verbose output")
+	flagSafe = flag.Bool("safe", false, "be more conservative (experimental)")
+	flagV    = flag.Bool("v", false, "verbose output")
 )
 
 func usage() {
@@ -175,7 +175,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func nomain() {
+func main() {
 	flag.Usage = usage
 	flag.Parse()
 
@@ -224,17 +224,6 @@ func nomain() {
 			os.Exit(1)
 		}
 	}
-}
-
-func Run(prog *loader.Program) []token.Position {
-	m := computeEditsFromProg(prog)
-	var conversions []token.Position
-	for _, positions := range m {
-		for pos := range positions {
-			conversions = append(conversions, pos)
-		}
-	}
-	return conversions
 }
 
 var plats = [...]struct {
@@ -320,10 +309,6 @@ func computeEdits(importPaths []string, os, arch string, cgoEnabled bool) fileTo
 		log.Fatal(err)
 	}
 
-	return computeEditsFromProg(prog)
-}
-
-func computeEditsFromProg(prog *loader.Program) fileToEditSet {
 	type res struct {
 		file  string
 		edits editSet
@@ -336,7 +321,7 @@ func computeEditsFromProg(prog *loader.Program) fileToEditSet {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				v := visitor{pkg: pkg, file: prog.Fset.File(file.Package), edits: make(editSet)}
+				v := visitor{pkg: pkg, file: conf.Fset.File(file.Package), edits: make(editSet)}
 				ast.Walk(&v, file)
 				ch <- res{v.file.Name(), v.edits}
 			}()
